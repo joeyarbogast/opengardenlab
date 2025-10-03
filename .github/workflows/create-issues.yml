@@ -2,6 +2,8 @@ name: Create Issues from Markdown
 
 on:
   push:
+    branches:
+      - main  # Only run on main branch (after PR merge)
     paths:
       - '.github/issues/**.md'
   workflow_dispatch:  # Allow manual trigger
@@ -9,6 +11,10 @@ on:
 permissions:
   issues: write
   contents: read
+
+concurrency:
+  group: create-issues
+  cancel-in-progress: false  # Don't cancel, queue them instead
 
 jobs:
   create-issues:
@@ -75,8 +81,11 @@ jobs:
               continue
             fi
 
-            # Check if issue already exists with this title
-            EXISTING=$(gh issue list --state all --limit 1000 --json title --jq ".[] | select(.title == \"$TITLE\") | .number")
+            # Check if issue already exists with this title OR story file reference
+            # This prevents duplicates even during race conditions
+            STORY_FILE=$(echo "$BODY" | grep "^\*\*Story File:\*\*" | head -1)
+
+            EXISTING=$(gh issue list --state all --limit 1000 --json title,body --jq ".[] | select(.title == \"$TITLE\" or (.body | contains(\"$STORY_FILE\"))) | .number" | head -1)
 
             if [ -n "$EXISTING" ]; then
               echo "Issue already exists: #$EXISTING - $TITLE"
