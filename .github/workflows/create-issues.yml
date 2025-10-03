@@ -1,0 +1,84 @@
+name: Create Issues from Markdown
+
+on:
+  push:
+    paths:
+      - '.github/issues/**.md'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Fetch last 2 commits to detect new files
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            # Manual trigger - process all files
+            echo "files<<EOF" >> $GITHUB_OUTPUT
+            find .github/issues -type f -name "*.md" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            # Push trigger - only process new/modified files
+            echo "files<<EOF" >> $GITHUB_OUTPUT
+            git diff --name-only --diff-filter=A HEAD~1 HEAD | grep "^\.github/issues/.*\.md$" >> $GITHUB_OUTPUT || true
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create issues from markdown files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FILES="${{ steps.changed-files.outputs.files }}"
+
+          if [ -z "$FILES" ]; then
+            echo "No new issue files found"
+            exit 0
+          fi
+
+          for file in $FILES; do
+            if [ ! -f "$file" ]; then
+              echo "Skipping non-existent file: $file"
+              continue
+            fi
+
+            echo "Processing: $file"
+
+            # Extract title (first heading)
+            TITLE=$(grep -m 1 "^## " "$file" | sed 's/^## //')
+
+            # Extract body (everything after first line)
+            BODY=$(tail -n +2 "$file")
+
+            # Extract labels from the markdown
+            LABELS=$(echo "$BODY" | grep -A 10 "### Labels" | grep "^- " | sed 's/^- `//' | sed 's/`$//' | tr '\n' ',' | sed 's/,$//')
+
+            if [ -z "$TITLE" ]; then
+              echo "No title found in $file, skipping"
+              continue
+            fi
+
+            # Check if issue already exists with this title
+            EXISTING=$(gh issue list --state all --limit 1000 --json title --jq ".[] | select(.title == \"$TITLE\") | .number")
+
+            if [ -n "$EXISTING" ]; then
+              echo "Issue already exists: #$EXISTING - $TITLE"
+            else
+              # Create the issue
+              if [ -n "$LABELS" ]; then
+                gh issue create --title "$TITLE" --body "$BODY" --label "$LABELS"
+              else
+                gh issue create --title "$TITLE" --body "$BODY"
+              fi
+              echo "Created issue: $TITLE"
+            fi
+          done
