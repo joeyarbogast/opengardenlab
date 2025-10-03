@@ -1,0 +1,58 @@
+# Python (firmware)
+*.pyc
+__pycache__/
+*.so
+*.egg-info/
+.pytest_cache/
+*.py[cod]
+*$py.class
+*.egg
+.eggs/
+dist/
+build/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Firmware runtime data
+firmware/data/*.db
+firmware/data/*.db-journal
+firmware/logs/
+firmware/*.log
+
+# Android/Kotlin (mobile-app)
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+*.apk
+*.aab
+.DS_Store
+
+# Mobile app build artifacts
+mobile-app/build/
+mobile-app/.gradle/
+mobile-app/app/build/
+
+# IDEs and editors
+.vscode/
+.vs/
+*.swp
+*.swo
+*~
+
+# BMad framework (development tooling)
+.bmad-core/
+.claude/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
