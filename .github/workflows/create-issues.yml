@@ -45,6 +45,14 @@ jobs:
             exit 0
           fi
 
+          # Ensure common labels exist
+          echo "Ensuring labels exist..."
+          gh label create "story" --color "0E8A16" --description "User story" --force || true
+          gh label create "epic-1" --color "1D76DB" --description "Epic 1: Foundation & Core Firmware" --force || true
+          gh label create "epic-2" --color "1D76DB" --description "Epic 2: Mobile App Foundation & Plant Database" --force || true
+          gh label create "epic-3" --color "1D76DB" --description "Epic 3: Bluetooth Sync & Data Integration" --force || true
+          gh label create "epic-4" --color "1D76DB" --description "Epic 4: Recommendations Engine & Multi-Device Support" --force || true
+
           for file in $FILES; do
             if [ ! -f "$file" ]; then
               echo "Skipping non-existent file: $file"
@@ -75,7 +83,8 @@ jobs:
             else
               # Create the issue
               if [ -n "$LABELS" ]; then
-                gh issue create --title "$TITLE" --body "$BODY" --label "$LABELS"
+                echo "Creating issue with labels: $LABELS"
+                gh issue create --title "$TITLE" --body "$BODY" --label "$LABELS" || gh issue create --title "$TITLE" --body "$BODY"
               else
                 gh issue create --title "$TITLE" --body "$BODY"
               fi
