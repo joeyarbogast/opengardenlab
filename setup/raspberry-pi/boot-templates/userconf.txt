@@ -1,0 +1,23 @@
+# Raspberry Pi User Configuration Template
+#
+# PURPOSE: Set initial username and password for headless setup
+#
+# INSTRUCTIONS:
+# 1. Choose a username (e.g., 'pi')
+# 2. Generate encrypted password hash:
+#    echo 'yourpassword' | openssl passwd -6 -stdin
+# 3. Replace the line below with: username:encrypted_password_hash
+#
+# FORMAT: username:$6$rounds=656000$hash...
+# NO SPACES around the colon!
+#
+# EXAMPLE:
+# pi:$6$rounds=656000$abcdefg12345.../hashed_password_here
+#
+# SECURITY WARNING:
+# - Do NOT commit this file with real credentials!
+# - Add to .gitignore after customization
+# - Use a strong password (12+ characters, mixed case, numbers, symbols)
+
+# Replace this line with your username:password_hash
+pi:REPLACE_WITH_ENCRYPTED_PASSWORD_HASH
