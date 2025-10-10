@@ -271,3 +271,103 @@
 **Total investment:** ~$110-121 for a complete IoT garden monitoring system!
 
 *Shopping list created 2025-10-01*
+
+---
+
+## 🔬 Future Experimental Components (Phase 2+)
+
+Components to consider for expanding capabilities beyond MVP. These support advanced diagnostics, better accuracy, and automation experiments.
+
+### 🌡️ Advanced Sensors
+
+**High-Priority Environmental:**
+| Component | Purpose | Est. Cost | Interface | Notes |
+|-----------|---------|-----------|-----------|-------|
+| **BME680** | 4-in-1: temp, humidity, pressure, air quality/VOC | $20 | I2C | Superior to DHT20, detects plant stress gases |
+| **Capacitive pH Sensor** | Soil pH measurement (critical for nutrients) | $15-25 | I2C/Analog | High impact for plant diagnosis |
+| **EC/TDS Sensor** | Electrical conductivity (nutrient concentration) | $15-20 | Analog | Requires ADC or analog-capable sensor |
+| **NPK Sensor** | Direct N-P-K measurement | $40-80 | RS485/UART | Expensive but highly valuable |
+
+**Specialty Light/Radiation:**
+| Component | Purpose | Est. Cost | Interface | Notes |
+|-----------|---------|-----------|-----------|-------|
+| **VEML6075 UV Sensor** | UV index tracking for sun-sensitive plants | $8-12 | I2C | Adafruit #3964 |
+| **AS7341 Spectral Sensor** | 11-channel light spectrum analyzer | $15-18 | I2C | Optimize photosynthesis wavelengths |
+| **Thermal Camera (MLX90640 or AMG8833)** | Heat mapping for disease/water stress | $50-70 (MLX) / $40 (AMG) | I2C | MLX is 32×24px, AMG is 8×8px |
+
+**Water/Weather:**
+| Component | Purpose | Est. Cost | Interface | Notes |
+|-----------|---------|-----------|-----------|-------|
+| **Rain Gauge (Tipping Bucket)** | Measure rainfall | $12-18 | Digital pulse | Correlate watering with rain |
+| **Wind Speed Sensor (Anemometer)** | Track wind damage risk | $15-25 | Analog/Pulse | Useful for exposed gardens |
+
+### ⚡ Power & Connectivity
+
+| Component | Purpose | Est. Cost | Notes |
+|-----------|---------|-----------|-------|
+| **Solar Panel Kit (6V 2W + charge controller)** | Eliminate battery swapping | $25-35 | Test solar feasibility earlier than Phase 2 |
+| **DS3231 RTC Module** | Precision timestamps without WiFi | $3-6 | I2C, battery-backed clock |
+| **LoRa Module (RFM95W)** | Long-range wireless (500m+) | $15-25 | SPI, Bluetooth alternative for large properties |
+
+### 🔧 Expansion Hardware
+
+| Component | Purpose | Est. Cost | Notes |
+|-----------|---------|-----------|-------|
+| **I2C Multiplexer (TCA9548A)** | Run multiple sensors with same I2C address | $5-8 | Essential for scaling sensors |
+| **2-4 Channel Relay Module** | Automated watering valve experiments | $8-12 | 5V/3.3V compatible |
+| **Breadboard Power Supply** | Clean 3.3V/5V rails during prototyping | $6-10 | MB102 module |
+
+### 🛠️ Development & Accessories
+
+**Testing Tools:**
+| Component | Purpose | Est. Cost | Notes |
+|-----------|---------|-----------|-------|
+| **USB Logic Analyzer** | Debug I2C/1-Wire communication | $10-15 | Saleae-compatible 8-channel |
+| **USB-C Power Meter** | Measure actual power draw for battery planning | $12-20 | Measure Pi + sensors current |
+
+**Installation Accessories:**
+| Component | Purpose | Est. Cost | Notes |
+|-----------|---------|-----------|-------|
+| **Waterproof Cable Glands (extra)** | Better sealing than IP65 box alone | $6-8 | PG9 or PG11 for larger cables |
+| **STEMMA QT/Qwiic Cables** (various lengths: 50mm, 100mm, 200mm) | Tool-free I2C prototyping | $2-3 each | Adafruit or SparkFun |
+| **Heat-Shrink Tubing Kit** | Professional wire terminations | $8-12 | Various sizes |
+| **Wire Ferrules + Crimper** | Clean sensor wire connections | $15-20 | Prevents fraying |
+| **Silica Gel Packets (reusable)** | Combat condensation in enclosure | $8-12 | Rechargeable desiccant |
+| **Spare MicroSD Cards (16-32GB)** | Quick firmware version swapping | $6-10 each | High-endurance recommended |
+
+### 💡 Recommended First Additions (Budget: $100-150)
+
+If adding components after MVP deployment, prioritize these for maximum impact:
+
+1. **pH Sensor** ($15-25) - Critical missing data point for plant health
+2. **BME680** ($20) - Replace DHT20 with superior multi-sensor
+3. **Solar Panel Kit** ($25-35) - Biggest quality-of-life improvement
+4. **I2C Multiplexer** ($5) - Future-proofs multi-sensor expansion
+5. **Spare Sensors** ($20-30) - STEMMA Soil + BH1750 backups (outdoor failures happen)
+6. **Logic Analyzer** ($10-15) - Invaluable for debugging sensor issues
+
+**Total:** ~$95-130 for high-impact expansion
+
+### 📝 Notes on Future Sensors
+
+**I2C Compatibility:**
+- Most recommended sensors use I2C (shares same 2-wire bus as current sensors)
+- I2C multiplexer allows duplicate addresses (e.g., multiple BH1750 sensors)
+
+**Analog Sensors (EC/TDS, Wind):**
+- Raspberry Pi Zero has NO built-in ADC
+- Options: Add MCP3008 ADC chip ($4) OR use I2C ADC module (ADS1115, $10)
+- Consider ESP32 for analog-heavy Phase 3 multi-node setup
+
+**Power Budget:**
+- BME680, pH sensor, UV sensor add minimal power draw (~5-10mA each)
+- Thermal camera (MLX90640) draws ~20mA (still acceptable)
+- Solar panel becomes critical if adding 5+ sensors
+
+**Storage:**
+- Additional sensors increase data volume (more columns per reading)
+- 32GB MicroSD handles years of expanded data (current estimate: ~500KB/month)
+
+---
+
+*Future components list added 2025-10-05*
