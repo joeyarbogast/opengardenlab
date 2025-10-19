@@ -431,11 +431,268 @@ sudo apt install i2c-tools -y
 
 ---
 
+## Story 1.4: Install Sensor Libraries and Test I2C Sensors
+
+**Goal:** Install Adafruit CircuitPython libraries and validate I2C sensor communication.
+
+### Prerequisites
+- Completed Story 1.3 (I2C and 1-Wire interfaces enabled)
+- SSH access to Raspberry Pi
+
+---
+
+### Step 1: Install Sensor Libraries (Automated)
+
+**Deploy and Run Installation Script:**
+
+From your development machine (in the project root directory):
+
+```bash
+# If not already done, copy setup scripts to Pi (includes new sensor library script)
+scp -r setup/raspberry-pi/* pi@opengardenlab.local:~/setup/
+```
+
+SSH into your Raspberry Pi:
+```bash
+ssh pi@opengardenlab.local
+```
+
+Run the sensor library installation script:
+```bash
+cd ~/setup/scripts
+./install-sensor-libraries.sh
+```
+
+This script will:
+- ✅ Verify Python 3.9+ installation
+- ✅ Upgrade pip3 to latest version
+- ✅ Install Adafruit Blinka (CircuitPython compatibility layer)
+- ✅ Install sensor libraries:
+  - `adafruit-circuitpython-seesaw` (STEMMA Soil Sensor)
+  - `adafruit-circuitpython-bh1750` (BH1750 Light Sensor)
+  - `adafruit-circuitpython-ahtx0` (DHT20/AHT20 Temp/Humidity)
+- ✅ Display installed library versions for verification
+
+**Expected output snippet:**
+```
+✓ Python 3 installed: 3.13.x
+✓ pip3 upgraded successfully
+✓ adafruit-blinka installed successfully
+✓ STEMMA Soil Sensor library installed
+✓ BH1750 Light Sensor library installed
+✓ DHT20 Temp/Humidity Sensor library installed
+
+Installed Adafruit libraries:
+adafruit-circuitpython-ahtx0             1.0.27
+adafruit-circuitpython-bh1750            1.1.16
+adafruit-circuitpython-seesaw            1.16.7
+...
+```
+
+---
+
+### Step 2: Wire I2C Sensors (HUMAN REQUIRED)
+
+**⚠️ IMPORTANT: Power off Raspberry Pi before wiring sensors!**
+
+```bash
+sudo shutdown -h now
+```
+
+Wait for activity LED to stop blinking (Pi is fully powered off).
+
+**Wiring Instructions:**
+
+All three I2C sensors share the same 4 GPIO pins:
+
+| **Sensor Pin** | **GPIO Pin** | **Pin Number** | **Purpose** |
+|----------------|--------------|----------------|-------------|
+| VCC (Red)      | 3.3V         | Pin 1          | Power (3.3V) |
+| GND (Black)    | Ground       | Pin 6          | Ground |
+| SDA (White)    | GPIO2/SDA    | Pin 3          | I2C Data Line (shared) |
+| SCL (Yellow)   | GPIO3/SCL    | Pin 5          | I2C Clock Line (shared) |
+
+**Sensors to wire:**
+1. **STEMMA Soil Sensor** (I2C Address: 0x36)
+   - Use STEMMA QT cable (plug-and-play) OR jumper wires to breadboard
+2. **BH1750 Light Sensor** (I2C Address: 0x23)
+   - Connect VCC, GND, SDA, SCL to same GPIO pins as STEMMA
+3. **DHT20 Temp/Humidity Sensor** (I2C Address: 0x38)
+   - Connect VCC, GND, SDA, SCL to same GPIO pins
+
+**After wiring:**
+- Double-check all connections
+- Power on Raspberry Pi
+- Wait 60 seconds for boot
+- Reconnect via SSH
+
+---
+
+### Step 3: Verify I2C Sensor Detection
+
+SSH into Raspberry Pi and run:
+```bash
+i2cdetect -y 1
+```
+
+**Expected output:**
+```
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00:          -- -- -- -- -- -- -- -- -- -- -- -- --
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+20: -- -- -- 23 -- -- -- -- -- -- -- -- -- -- -- --
+30: -- -- -- -- -- -- 36 -- 38 -- -- -- -- -- -- --
+40: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+70: -- -- -- -- -- -- -- --
+```
+
+**Verify sensor addresses:**
+- ✅ `23` = BH1750 Light Sensor
+- ✅ `36` = STEMMA Soil Sensor
+- ✅ `38` = DHT20 Temp/Humidity Sensor
+
+**If any sensor is missing:**
+1. Check wiring connections (VCC, GND, SDA, SCL)
+2. Verify sensors are powered (3.3V to Pin 1)
+3. Ensure I2C interface enabled (run `./verify-interfaces.sh`)
+4. Reboot and re-scan: `sudo reboot`
+
+---
+
+### Step 4: Test Sensor Readings
+
+**Create test script directory:**
+```bash
+mkdir -p ~/opengardenlab/firmware/tests
+```
+
+**Create test script:**
+```bash
+nano ~/opengardenlab/firmware/tests/test_i2c_sensors.py
+```
+
+**Copy this code:**
+```python
+#!/usr/bin/env python3
+import time
+import board
+from adafruit_seesaw.seesaw import Seesaw
+from adafruit_bh1750 import BH1750
+from adafruit_ahtx0 import AHTx0
+
+# Initialize I2C bus
+i2c = board.I2C()
+
+# Initialize sensors
+print("Initializing sensors...")
+stemma = Seesaw(i2c, addr=0x36)
+bh1750 = BH1750(i2c)
+dht20 = AHTx0(i2c)
+
+print("Reading sensors...\n")
+
+# Read STEMMA Soil Sensor
+moisture_raw = stemma.moisture_read()
+soil_temp_c = stemma.get_temp()
+print(f"STEMMA Soil Sensor:")
+print(f"  Moisture (raw): {moisture_raw}")
+print(f"  Soil Temp: {soil_temp_c:.1f}°C\n")
+
+# Read BH1750 Light Sensor
+lux = bh1750.lux
+print(f"BH1750 Light Sensor:")
+print(f"  Light: {lux:.1f} lux\n")
+
+# Read DHT20 Air Temp/Humidity
+air_temp_c = dht20.temperature
+humidity = dht20.relative_humidity
+print(f"DHT20 Air Temp/Humidity:")
+print(f"  Air Temp: {air_temp_c:.1f}°C")
+print(f"  Humidity: {humidity:.1f}%\n")
+
+print("Test complete!")
+```
+
+Save and exit: `Ctrl+X`, `Y`, `Enter`
+
+**Make script executable:**
+```bash
+chmod +x ~/opengardenlab/firmware/tests/test_i2c_sensors.py
+```
+
+**Run test script:**
+```bash
+python3 ~/opengardenlab/firmware/tests/test_i2c_sensors.py
+```
+
+**Expected output:**
+```
+Initializing sensors...
+Reading sensors...
+
+STEMMA Soil Sensor:
+  Moisture (raw): 512
+  Soil Temp: 22.3°C
+
+BH1750 Light Sensor:
+  Light: 348.2 lux
+
+DHT20 Air Temp/Humidity:
+  Air Temp: 23.1°C
+  Humidity: 45.6%
+
+Test complete!
+```
+
+**Verify readings are sensible:**
+- ✅ Moisture raw: 200-2000 (varies by air vs water, uncalibrated)
+- ✅ Soil temp: 15-30°C (indoor room temperature)
+- ✅ Lux: 100-500 (indoor), 10,000-65,000 (direct sunlight)
+- ✅ Air temp: 15-30°C (room temperature)
+- ✅ Humidity: 20-80% (typical indoor range)
+
+---
+
+### Troubleshooting
+
+**Problem:** `ModuleNotFoundError: No module named 'adafruit_seesaw'`
+
+**Solution:**
+```bash
+pip3 list | grep adafruit
+# If library missing, re-run installation script
+cd ~/setup/scripts
+./install-sensor-libraries.sh
+```
+
+---
+
+**Problem:** `ValueError: No I2C device at address: 0x36` (or 0x23, 0x38)
+
+**Solutions:**
+1. Run `i2cdetect -y 1` to verify sensor appears on bus
+2. Check sensor wiring (VCC, GND, SDA, SCL)
+3. Verify sensor is powered (measure 3.3V on VCC pin with multimeter)
+4. Try different I2C address if sensor has configurable address jumper
+
+---
+
+**Problem:** Sensor readings are nonsensical (e.g., -40°C, 0 lux indoors)
+
+**Solutions:**
+1. Re-run test script (some sensors need initialization time)
+2. Power cycle Raspberry Pi: `sudo reboot`
+3. Check sensor datasheet for initialization delays
+4. Replace sensor if hardware fault suspected
+
+---
+
 ## Next Steps
 
-After completing Story 1.3, continue with:
-- Story 1.4: Wire and test sensors (I2C and 1-Wire devices)
-- Story 1.5: Install Python sensor libraries
-- Story 1.6+: Clone firmware repository to Pi
+After completing Story 1.4, continue with:
+- Story 1.5: Add DS18B20 1-Wire temperature probe
+- Story 1.6+: Build firmware sampling service
 
 **Happy gardening! 🌱**
