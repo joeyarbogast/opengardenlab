@@ -194,11 +194,248 @@ The AI agent will now:
 
 ---
 
+---
+
+## Story 1.3: Enable I2C and 1-Wire Interfaces
+
+**Goal:** Configure Raspberry Pi to communicate with digital sensors (I2C) and DS18B20 temperature probes (1-Wire).
+
+### Prerequisites
+- Completed Story 1.2 (SSH access to Raspberry Pi)
+- Repository cloned to your development machine
+
+---
+
+### Option A: Automated Setup (Recommended)
+
+**Step 1: Deploy Setup Scripts to Raspberry Pi**
+
+From your development machine (in the project root directory):
+
+```bash
+# Create setup directory on Pi
+ssh pi@opengardenlab.local "mkdir -p ~/setup"
+
+# Copy setup scripts to Pi
+scp -r setup/raspberry-pi/* pi@opengardenlab.local:~/setup/
+
+# Verify files transferred
+ssh pi@opengardenlab.local "ls -la ~/setup/scripts/"
+```
+
+**Step 2: Run Interface Setup Script**
+
+SSH into your Raspberry Pi:
+```bash
+ssh pi@opengardenlab.local
+```
+
+Run the automated setup script:
+```bash
+cd ~/setup/scripts
+./enable-interfaces.sh
+```
+
+This script will:
+- ✅ Detect your boot config location automatically
+- ✅ Enable I2C interface (idempotent - safe to run multiple times)
+- ✅ Enable 1-Wire interface (idempotent)
+- ✅ Install i2c-tools package
+- ✅ Inform you if reboot is required
+
+**Step 3: Reboot (if required)**
+
+If the script indicates a reboot is needed:
+```bash
+sudo reboot
+```
+
+Wait 60 seconds, then reconnect via SSH.
+
+**Step 4: Verify Setup**
+
+Run the verification script:
+```bash
+cd ~/setup/scripts
+./verify-interfaces.sh
+```
+
+**Expected output:**
+```
+==================================================
+I2C and 1-Wire Interface Verification
+==================================================
+
+Test 1: I2C Device Node
+✓ PASS: /dev/i2c-1 exists
+
+Test 2: 1-Wire Device Directory
+✓ PASS: /sys/bus/w1/devices/ exists
+
+Test 3: I2C Tools Installed
+✓ PASS: i2cdetect installed (version: X.X.X)
+
+Test 4: I2C Bus Scan
+✓ PASS: i2cdetect -y 1 ran without errors
+
+Test 5: I2C Kernel Modules
+✓ PASS: I2C kernel modules loaded
+
+Test 6: 1-Wire Kernel Modules
+✓ PASS: 1-Wire kernel modules loaded
+
+Test 7: Boot Config Entries
+✓ I2C: dtparam=i2c_arm=on
+✓ 1-Wire: dtoverlay=w1-gpio
+
+==================================================
+✓ SUCCESS: All interface checks passed!
+
+Your Raspberry Pi is ready for sensor wiring (Story 1.4)
+```
+
+---
+
+### Option B: Manual Setup
+
+If you prefer manual configuration or the automated script fails:
+
+**Step 1: Enable Interfaces via raspi-config**
+
+SSH into your Raspberry Pi and run:
+```bash
+sudo raspi-config
+```
+
+**Enable I2C:**
+1. Navigate to: **3 Interface Options** → **I5 I2C**
+2. Select **"Yes"** to enable I2C interface
+3. Press **"OK"** to confirm
+
+**Enable 1-Wire:**
+1. Navigate to: **3 Interface Options** → **I7 1-Wire**
+2. Select **"Yes"** to enable 1-Wire interface
+3. Press **"OK"** to confirm
+
+**Exit and Reboot:**
+1. Select **"Finish"**
+2. Select **"Yes"** when prompted to reboot
+3. Wait 60 seconds, then reconnect via SSH
+
+**Step 2: Install i2c-tools**
+
+```bash
+sudo apt update
+sudo apt install i2c-tools -y
+```
+
+Verify installation:
+```bash
+i2cdetect -V
+```
+
+**Step 3: Verify I2C Interface**
+
+Check I2C device exists:
+```bash
+ls /dev/i2c*
+```
+- Expected: `/dev/i2c-1`
+
+Scan I2C bus:
+```bash
+i2cdetect -y 1
+```
+- Expected: Grid showing "--" in all cells (no sensors connected yet)
+
+**Step 4: Verify 1-Wire Interface**
+
+Check 1-Wire device directory:
+```bash
+ls /sys/bus/w1/devices/
+```
+- Expected: `w1_bus_master1` (directory may be empty if no sensors connected)
+
+Verify kernel modules loaded:
+```bash
+lsmod | grep i2c
+lsmod | grep w1
+```
+- Expected: `i2c_dev`, `i2c_bcm2835`, `w1_gpio`, `w1_therm` modules listed
+
+**Step 5: Verify Boot Config**
+
+Check boot configuration file (location varies by OS version):
+
+```bash
+# Try newer OS location first
+cat /boot/firmware/config.txt | grep -E "i2c_arm|w1-gpio"
+
+# If not found, try older OS location
+cat /boot/config.txt | grep -E "i2c_arm|w1-gpio"
+```
+
+**Expected output:**
+```
+dtparam=i2c_arm=on
+dtoverlay=w1-gpio
+```
+
+---
+
+### Reference: Boot Config Snippet
+
+For manual configuration or troubleshooting, see the template file:
+- **File:** `setup/raspberry-pi/config/config.txt.snippet`
+- **Contents:** Documented boot config entries with comments explaining each setting
+
+---
+
+### Expected I2C Sensor Addresses (Story 1.4+)
+
+When sensors are connected in Story 1.4, `i2cdetect -y 1` will show:
+- **0x23** - BH1750 Light Sensor
+- **0x36** - STEMMA Soil Sensor
+- **0x38** - DHT20 Temperature/Humidity Sensor
+
+---
+
+### Troubleshooting
+
+**Problem:** `/dev/i2c-1` does not exist after reboot
+
+**Solutions:**
+1. Verify boot config entry: `cat /boot/firmware/config.txt | grep i2c_arm`
+2. If missing, manually add: `echo "dtparam=i2c_arm=on" | sudo tee -a /boot/firmware/config.txt`
+3. Reboot: `sudo reboot`
+
+---
+
+**Problem:** `i2cdetect: command not found`
+
+**Solution:**
+```bash
+sudo apt update
+sudo apt install i2c-tools -y
+```
+
+---
+
+**Problem:** `/sys/bus/w1/devices/` does not exist after reboot
+
+**Solutions:**
+1. Verify boot config entry: `cat /boot/firmware/config.txt | grep w1-gpio`
+2. If missing, manually add: `echo "dtoverlay=w1-gpio" | sudo tee -a /boot/firmware/config.txt`
+3. Reboot: `sudo reboot`
+4. Verify kernel modules: `lsmod | grep w1`
+
+---
+
 ## Next Steps
 
-After completing human setup, the AI agent will continue with:
-- Story 1.3: Enable I2C and 1-Wire interfaces for sensor communication
-- Story 1.4: Install Python sensor libraries
+After completing Story 1.3, continue with:
+- Story 1.4: Wire and test sensors (I2C and 1-Wire devices)
+- Story 1.5: Install Python sensor libraries
 - Story 1.6+: Clone firmware repository to Pi
 
 **Happy gardening! 🌱**

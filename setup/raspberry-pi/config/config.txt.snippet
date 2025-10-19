@@ -1,0 +1,61 @@
+# ==============================================================================
+# OpenGardenLab - Raspberry Pi Boot Configuration Snippet
+# ==============================================================================
+# Story 1.3: I2C and 1-Wire Interface Configuration
+#
+# This file contains the required entries to enable sensor interfaces.
+# Add these lines to your Raspberry Pi's boot configuration file.
+#
+# Boot config location (varies by Raspberry Pi OS version):
+#   - Older OS: /boot/config.txt
+#   - Newer OS (bookworm+): /boot/firmware/config.txt
+#
+# Manual installation:
+#   1. sudo nano /boot/config.txt (or /boot/firmware/config.txt)
+#   2. Add the lines below to the end of the file
+#   3. Save and exit (Ctrl+X, Y, Enter)
+#   4. sudo reboot
+#
+# Or use the automated script:
+#   ./scripts/enable-interfaces.sh
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# I2C Interface (Inter-Integrated Circuit)
+# ------------------------------------------------------------------------------
+# Purpose: Enable I2C bus 1 for digital sensor communication
+# Pins:    GPIO2 (SDA, Pin 3) and GPIO3 (SCL, Pin 5)
+# Sensors: STEMMA Soil (0x36), BH1750 Light (0x23), DHT20 Temp/Humidity (0x38)
+#
+# Effect: Creates /dev/i2c-1 device node and loads i2c_dev/i2c_bcm2835 kernel modules
+dtparam=i2c_arm=on
+
+# ------------------------------------------------------------------------------
+# 1-Wire Interface
+# ------------------------------------------------------------------------------
+# Purpose: Enable 1-Wire protocol for DS18B20 temperature probe
+# Pin:     GPIO4 (Pin 7) by default
+# Sensor:  DS18B20 Waterproof Soil Temperature Probe
+#
+# Note: Requires 4.7kΩ pullup resistor between data line and 3.3V
+# Effect: Creates /sys/bus/w1/devices/ directory and loads w1_gpio/w1_therm kernel modules
+dtoverlay=w1-gpio
+
+# Alternative: Explicitly specify GPIO pin (default is GPIO4)
+# dtoverlay=w1-gpio,gpiopin=4
+
+# ==============================================================================
+# Verification Commands (run after reboot):
+# ==============================================================================
+# Check I2C:
+#   ls /dev/i2c*              # Should show /dev/i2c-1
+#   i2cdetect -y 1            # Scan I2C bus for connected devices
+#   lsmod | grep i2c          # Verify kernel modules loaded
+#
+# Check 1-Wire:
+#   ls /sys/bus/w1/devices/   # Should show w1_bus_master1 (and sensors if connected)
+#   lsmod | grep w1           # Verify kernel modules loaded
+#
+# Or run automated verification:
+#   ./scripts/verify-interfaces.sh
+# ==============================================================================
